@@ -2297,10 +2297,6 @@ const ts0601Wsek35umModeSetpointConverter = {
     },
 } satisfies Fz.Converter<"manuSpecificTuya", undefined, ["commandDataReport"]>;
 
-const ts0601Wsek35umChildrenLockConverter = {
-    from: (value: boolean) => value === true,
-};
-
 // for https://www.zigbee2mqtt.io/devices/TO-Q-SYS-JZT.html
 const Tze2846ocnqlhnlcdBrightnessConverter = {
     from: (value: number) => value * 20,
@@ -30788,29 +30784,71 @@ export const definitions: DefinitionWithExtend[] = [
         model: "TS0601_wsek35um",
         vendor: "Tuya",
         description: "Radiator thermostat",
-        extend: [tuya.modernExtend.tuyaBase({dp: true, timeStart: "1970"})],
+        extend: [tuya.modernExtend.tuyaBase({dp: true, timeStart: "1970", queryOnConfigure: true, queryOnDeviceAnnounce: true})],
         fromZigbee: [ts0601Wsek35umModeSetpointConverter],
         exposes: [
-            e.climate().withLocalTemperature(ea.STATE).withSetpoint("current_heating_setpoint", 5, 30, 0.5, ea.STATE_SET),
-            e.binary("children_lock", ea.STATE, true, false).withDescription("Children lock status"),
-            e.enum("mode", ea.STATE, ["Off", "Cold", "Night", "Day", "Scheduled"]).withDescription("Current mode"),
+            e
+                .climate()
+                .withLocalTemperature(ea.STATE)
+                .withSetpoint("current_heating_setpoint", 5, 30, 0.5, ea.STATE_SET)
+                .withSystemMode(["off", "heat", "auto"], ea.STATE_SET)
+                .withPreset(["comfort", "eco", "frost_protection"])
+                .withRunningState(["idle", "heat"], ea.STATE)
+                .withLocalTemperatureCalibration(-9.5, 9.5, 0.5, ea.STATE_SET),
+            e.child_lock(),
+            e.battery(),
+            e.window_detection(),
+            e.numeric("valve_position", ea.STATE).withUnit("%").withValueMin(0).withValueMax(100).withDescription("Valve opening"),
+            e.comfort_temperature().withValueMin(5).withValueMax(30).withValueStep(0.5),
+            e.eco_temperature().withValueMin(5).withValueMax(30).withValueStep(0.5),
+            e
+                .numeric("frost_protection_temperature", ea.STATE_SET)
+                .withUnit("°C")
+                .withValueMin(5)
+                .withValueMax(30)
+                .withValueStep(0.5)
+                .withDescription("Target temperature in frost protection mode"),
         ],
         meta: {
             tuyaDatapoints: [
                 [
                     2,
-                    "mode",
-                    tuya.valueConverterBasic.lookup({
-                        Off: 0,
-                        Cold: 1,
-                        Night: 2,
-                        Day: 3,
-                        Scheduled: 4,
+                    null,
+                    tuya.valueConverter.thermostatSystemModeAndPresetMap({
+                        fromMap: {
+                            0: {deviceMode: "off", systemMode: "off", preset: "none"},
+                            1: {deviceMode: "frost_protection", systemMode: "heat", preset: "frost_protection"},
+                            2: {deviceMode: "eco", systemMode: "heat", preset: "eco"},
+                            3: {deviceMode: "comfort", systemMode: "heat", preset: "comfort"},
+                            4: {deviceMode: "schedule", systemMode: "auto", preset: "none"},
+                        },
                     }),
                 ],
+                [
+                    2,
+                    "preset",
+                    tuya.valueConverter.thermostatSystemModeAndPresetMap({
+                        toMap: {frost_protection: tuya.enum(1), eco: tuya.enum(2), comfort: tuya.enum(3)},
+                    }),
+                ],
+                [
+                    2,
+                    "system_mode",
+                    tuya.valueConverter.thermostatSystemModeAndPresetMap({
+                        toMap: {off: tuya.enum(0), heat: tuya.enum(3), auto: tuya.enum(4)},
+                    }),
+                ],
+                [3, "running_state", tuya.valueConverterBasic.lookup({idle: 0, heat: 1})],
                 [4, "current_heating_setpoint", tuya.valueConverter.divideBy10],
                 [5, "local_temperature", tuya.valueConverter.divideBy10],
-                [7, "children_lock", ts0601Wsek35umChildrenLockConverter],
+                [6, "battery", tuya.valueConverter.raw],
+                [7, "child_lock", tuya.valueConverter.lockUnlock],
+                [14, "window_detection", tuya.valueConverter.onOff],
+                [47, "local_temperature_calibration", tuya.valueConverter.divideBy10],
+                [114, "valve_position", tuya.valueConverter.divideBy10],
+                [119, "comfort_temperature", tuya.valueConverter.divideBy10],
+                [120, "eco_temperature", tuya.valueConverter.divideBy10],
+                [121, "frost_protection_temperature", tuya.valueConverter.divideBy10],
             ],
         },
     },
