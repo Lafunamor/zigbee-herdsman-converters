@@ -31875,11 +31875,11 @@ export const definitions: DefinitionWithExtend[] = [
             e
                 .climate()
                 .withLocalTemperature(ea.STATE)
-                .withSetpoint("current_heating_setpoint", 5, 30, 0.5, ea.STATE_SET)
+                .withSetpoint("current_heating_setpoint", 5, 35, 0.5, ea.STATE_SET)
                 .withSystemMode(["off", "heat", "auto"], ea.STATE_SET)
-                .withPreset(["comfort", "eco", "frost_protection"])
+                .withPreset(["comfort", "eco", "frost_protection", "boost"])
                 .withRunningState(["idle", "heat"], ea.STATE)
-                .withLocalTemperatureCalibration(-9.5, 9.5, 0.5, ea.STATE_SET),
+                .withLocalTemperatureCalibration(-10, 10, 0.1, ea.STATE_SET),
             e.child_lock(),
             e.battery(),
             e.window_detection(),
@@ -31893,6 +31893,40 @@ export const definitions: DefinitionWithExtend[] = [
                 .withValueMax(30)
                 .withValueStep(0.5)
                 .withDescription("Target temperature in frost protection mode"),
+            e.max_temperature().withValueMin(20).withValueMax(35).withValueStep(1),
+            e.min_temperature().withValueMin(5).withValueMax(15).withValueStep(1),
+            e
+                .enum("hysteresis", ea.STATE_SET, ["comfort", "eco"])
+                .withCategory("config")
+                .withDescription("Valve control: comfort opens the valve partially, eco opens it fully or not at all"),
+            e
+                .numeric("hysteresis_threshold", ea.STATE_SET)
+                .withUnit("°C")
+                .withValueMin(0.5)
+                .withValueMax(5)
+                .withValueStep(0.1)
+                .withCategory("config")
+                .withDescription("Switching threshold, used when hysteresis is set to eco"),
+            e.enum("motor_thrust", ea.STATE_SET, ["strong", "middle", "weak"]).withCategory("config").withDescription("Motor thrust"),
+            e.enum("display_brightness", ea.STATE_SET, ["high", "medium", "low"]).withCategory("config").withDescription("Display brightness"),
+            e.enum("screen_orientation", ea.STATE_SET, ["up", "down"]).withCategory("config").withDescription("Screen orientation"),
+            e.binary("frost_protection", ea.STATE_SET, "ON", "OFF").withCategory("config").withDescription("Frost protection while off"),
+            e
+                .numeric("boost_timeset_countdown", ea.STATE_SET)
+                .withUnit("min")
+                .withValueMin(0)
+                .withValueMax(120)
+                .withValueStep(1)
+                .withCategory("config")
+                .withDescription("Only in auto mode: opens the valve fully for this many minutes"),
+            e
+                .numeric("vacation_duration", ea.STATE_SET)
+                .withUnit("d")
+                .withValueMin(0)
+                .withValueMax(364)
+                .withValueStep(1)
+                .withCategory("config")
+                .withDescription("Above 0 the target drops to the frost protection temperature"),
         ],
         meta: {
             tuyaDatapoints: [
@@ -31906,6 +31940,7 @@ export const definitions: DefinitionWithExtend[] = [
                             2: {deviceMode: "eco", systemMode: "heat", preset: "eco"},
                             3: {deviceMode: "comfort", systemMode: "heat", preset: "comfort"},
                             4: {deviceMode: "schedule", systemMode: "auto", preset: "none"},
+                            5: {deviceMode: "boost", systemMode: "heat", preset: "boost"},
                         },
                     }),
                 ],
@@ -31913,7 +31948,7 @@ export const definitions: DefinitionWithExtend[] = [
                     2,
                     "preset",
                     tuya.valueConverter.thermostatSystemModeAndPresetMap({
-                        toMap: {frost_protection: tuya.enum(1), eco: tuya.enum(2), comfort: tuya.enum(3)},
+                        toMap: {frost_protection: tuya.enum(1), eco: tuya.enum(2), comfort: tuya.enum(3), boost: tuya.enum(5)},
                     }),
                 ],
                 [
@@ -31928,12 +31963,22 @@ export const definitions: DefinitionWithExtend[] = [
                 [5, "local_temperature", tuya.valueConverter.divideBy10],
                 [6, "battery", tuya.valueConverter.raw],
                 [7, "child_lock", tuya.valueConverter.lockUnlock],
+                [9, "max_temperature", tuya.valueConverter.divideBy10],
+                [10, "min_temperature", tuya.valueConverter.divideBy10],
                 [14, "window_detection", tuya.valueConverter.onOff],
                 [47, "local_temperature_calibration", tuya.valueConverter.divideBy10],
+                [110, "motor_thrust", tuya.valueConverterBasic.lookup({strong: tuya.enum(0), middle: tuya.enum(1), weak: tuya.enum(2)})],
+                [111, "display_brightness", tuya.valueConverterBasic.lookup({high: tuya.enum(0), medium: tuya.enum(1), low: tuya.enum(2)})],
+                [113, "screen_orientation", tuya.valueConverterBasic.lookup({up: tuya.enum(0), down: tuya.enum(1)})],
                 [114, "valve_position", tuya.valueConverter.divideBy10],
+                [115, "hysteresis_threshold", tuya.valueConverter.divideBy10],
+                [117, "vacation_duration", tuya.valueConverter.raw],
+                [118, "boost_timeset_countdown", tuya.valueConverter.raw],
                 [119, "comfort_temperature", tuya.valueConverter.divideBy10],
                 [120, "eco_temperature", tuya.valueConverter.divideBy10],
                 [121, "frost_protection_temperature", tuya.valueConverter.divideBy10],
+                [122, "frost_protection", tuya.valueConverter.onOff],
+                [127, "hysteresis", tuya.valueConverterBasic.lookup({comfort: tuya.enum(0), eco: tuya.enum(1)})],
             ],
         },
     },
