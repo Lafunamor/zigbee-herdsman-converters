@@ -12033,7 +12033,7 @@ export const definitions: DefinitionWithExtend[] = [
         vendor: "Tuya",
         description: "Radiator thermostat",
         extend: [
-            tuya.modernExtend.tuyaTrv602z(),
+            tuya.modernExtend.tuyaTrv602z({frostPreset: "frost_protection", frostLabel: "Frost protection temperature"}),
             tuya.modernExtend.tuyaBase({
                 dp: true,
                 timeStart: "1970",
