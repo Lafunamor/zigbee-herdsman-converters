@@ -2270,22 +2270,6 @@ const ms032zLedChips = {
     type_15: tuya.enum(15),
 };
 
-const ts0601Wsek35umModeSetpointConverter = {
-    cluster: "manuSpecificTuya",
-    type: ["commandDataReport"],
-    convert: (model, msg) => {
-        const mode = msg.data.dpValues?.find((dp) => dp.dp === 2);
-
-        if (mode?.data?.[0] === 0) {
-            return {current_heating_setpoint: 5};
-        }
-    },
-} satisfies Fz.Converter<"manuSpecificTuya", undefined, ["commandDataReport"]>;
-
-const ts0601Wsek35umChildrenLockConverter = {
-    from: (value: boolean) => value === true,
-};
-
 // for https://www.zigbee2mqtt.io/devices/TO-Q-SYS-JZT.html
 const Tze2846ocnqlhnlcdBrightnessConverter = {
     from: (value: number) => value * 20,
@@ -12036,6 +12020,23 @@ export const definitions: DefinitionWithExtend[] = [
             tuya.modernExtend.tuyaBase({
                 dp: true,
                 timeStart: "2000",
+                forceTimeUpdates: true,
+                queryOnConfigure: true,
+                queryOnDeviceAnnounce: true,
+            }),
+        ],
+        meta: {tuyaDatapoints: trv602zDatapoints},
+    },
+    {
+        fingerprint: tuya.fingerprint("TS0601", ["_TZE204_wsek35um"]),
+        model: "TS0601_wsek35um",
+        vendor: "Tuya",
+        description: "Radiator thermostat",
+        extend: [
+            tuya.modernExtend.tuyaTrv602z(),
+            tuya.modernExtend.tuyaBase({
+                dp: true,
+                timeStart: "1970",
                 forceTimeUpdates: true,
                 queryOnConfigure: true,
                 queryOnDeviceAnnounce: true,
@@ -30269,37 +30270,6 @@ export const definitions: DefinitionWithExtend[] = [
         },
     },
 
-    {
-        fingerprint: tuya.fingerprint("TS0601", ["_TZE204_wsek35um"]),
-        model: "TS0601_wsek35um",
-        vendor: "Tuya",
-        description: "Radiator thermostat",
-        extend: [tuya.modernExtend.tuyaBase({dp: true, timeStart: "1970"})],
-        fromZigbee: [ts0601Wsek35umModeSetpointConverter],
-        exposes: [
-            e.climate().withLocalTemperature(ea.STATE).withSetpoint("current_heating_setpoint", 5, 30, 0.5, ea.STATE_SET),
-            e.binary("children_lock", ea.STATE, true, false).withDescription("Children lock status"),
-            e.enum("mode", ea.STATE, ["Off", "Cold", "Night", "Day", "Scheduled"]).withDescription("Current mode"),
-        ],
-        meta: {
-            tuyaDatapoints: [
-                [
-                    2,
-                    "mode",
-                    tuya.valueConverterBasic.lookup({
-                        Off: 0,
-                        Cold: 1,
-                        Night: 2,
-                        Day: 3,
-                        Scheduled: 4,
-                    }),
-                ],
-                [4, "current_heating_setpoint", tuya.valueConverter.divideBy10],
-                [5, "local_temperature", tuya.valueConverter.divideBy10],
-                [7, "children_lock", ts0601Wsek35umChildrenLockConverter],
-            ],
-        },
-    },
     {
         fingerprint: tuya.fingerprint("TS0601", ["_TZE204_r6kfl9ta"]),
         model: "ZY-N1",
